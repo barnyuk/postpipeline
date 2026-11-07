@@ -1,38 +1,52 @@
 import asyncio
-
-from aiohttp import ClientSession
+import analyzer
+from aiohttp import ClientSession, ClientTimeout
 
 url = 'https://jsonplaceholder.typicode.com/posts/'
 
 
-async def fetch_post(session: ClientSession, post_id, semaphore: asyncio.Semaphore):
+async def fetch_post(session: ClientSession, post_id: int, semaphore: asyncio.Semaphore):
+    async with semaphore:
+        await logger(str(post_id))
+        
+        try: 
+            
+            async with session.get(f'{url}{post_id}') as response:
 
-    async with semaphore:  # noqa: SIM117
-        async with session.get(f'{url}{post_id}') as response:
-            try:
                 response.raise_for_status()
-
-                return await response.json()
-            except TimeoutError as e:
                 
-                return f'asyncio.TimeoutError: {e}'
-            except Exception as e:  # noqa: BLE001
-                return f'Exception: {e}'
+                return await response.json()
+        
+        except asyncio.TimeoutError as e:  # noqa: UP041
+            
+            return f'TimeoutError для поста {post_id}: {e}'
+        
+        except Exception as e:  # noqa: BLE001
+            
+            return f'Exception для поста {post_id}: {e}'
 
 
-async def logger(string: str) -> None:
-    print(string)
+async def logger(post_id: str) -> None:
+    print(f"Начало загрузки поста {post_id}")
 
 
-async def fetch_all_posts(num: int = 100, semaphore_count = 5, timeout: int = 5):
-    
+async def fetch_all_posts(num: int = 100, semaphore_count: int = 5, timeout: int = 5):
     semaphore = asyncio.Semaphore(semaphore_count)
 
-    async with ClientSession(timeout=timeout) as session:
+    client_timeout = ClientTimeout(total=timeout)
+
+    async with ClientSession(timeout=client_timeout) as session:
+
         tasks = [fetch_post(session, i, semaphore) for i in range(1, num + 1)]
-        log_task = asyncio.create_task(logger('start'))
-        
-        return await asyncio.gather(*tasks, log_task)
 
-print(asyncio.run(fetch_all_posts(num = 10)))
+        return await asyncio.gather(*tasks)
 
+
+if __name__ == '__main__':
+    res = asyncio.run(fetch_all_posts(num=10))
+
+res = analyzer.analyze_all_posts(res)
+
+
+
+print(*res, sep='\n')
