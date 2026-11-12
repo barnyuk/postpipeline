@@ -1,27 +1,22 @@
 import asyncio
-import fetcher
-import analyzer
-import saver
-from queue import Queue
-from threading import Event
 import time
+from threading import Event
+
+import analyzer
+import fetcher
+import saver
 
 start = time.time()
 
 def run_pipeline():
     
     event = Event()
-    q = Queue()
     
-    result = asyncio.run(fetcher.fetch_all_posts(num=10, event=event))
+    result = analyzer.analyze_all_posts(
+        asyncio.run(fetcher.fetch_all_posts(num=10, event=event))
+    )
 
-
-    result = analyzer.analyze_all_posts(result)
-
-    for post in result:
-        q.put(post)
-
-    saver.save_all_posts(q=q, event=event, all_posts=len(result))
+    saver.save_all_posts(q=result, event=event)
 
  
 def print_report(): 
@@ -36,5 +31,4 @@ def print_report():
 
 if __name__ == '__main__':
     run_pipeline()
-
-print_report()
+    print_report()

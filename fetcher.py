@@ -4,7 +4,7 @@ from threading import Event
 
 url = 'https://jsonplaceholder.typicode.com/posts/'
 
-all_requested_post, suc_loaded = 0, 0
+all_requested_posts, suc_loaded= 0, 0
 
 async def fetch_post(session: ClientSession, post_id: int, semaphore: asyncio.Semaphore, event: Event):
     global suc_loaded 
@@ -20,13 +20,15 @@ async def fetch_post(session: ClientSession, post_id: int, semaphore: asyncio.Se
                 
                 return await response.json()
         
-        except asyncio.TimeoutError as e:  # noqa: UP041
+        except asyncio.TimeoutError:  # noqa: UP041
+            print(f'TimeoutError для поста {post_id}')
             
-            return f'TimeoutError для поста {post_id}: {e}'
+            return None
         
-        except Exception as e:  # noqa: BLE001
+        except Exception:  # noqa: BLE001
+            print(f'Exception для поста {post_id}')
             
-            return f'Exception для поста {post_id}: {e}'
+            return None
 
 
 async def logger(post_id: str, event: Event) -> None:

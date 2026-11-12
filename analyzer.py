@@ -1,12 +1,14 @@
 import hashlib
-from math import sin
-from multiprocessing import Process, Queue, Manager, Pool, Value, Lock
 import queue
+from math import sin
+from multiprocessing import Lock, Manager, Pool, Process, Value
 
 suc_analyzed = 0
 
-def calculate_post_index(post: dict, q: Queue) -> dict:
-
+def calculate_post_index(post: dict | None, q: queue.Queue) -> dict | None:
+    if post is None:
+        return
+    
     complexity_score = sum([sin(i) for i in range(1_000_000)])
 
     text = post['title'] + post['body']
@@ -40,6 +42,8 @@ def consumer(q: Queue, value: Value) -> None: # type: ignore
 
 def analyze_all_posts(posts: list[dict]) -> None:
 
+    queue_to_save = queue.Queue()
+    
     with Manager() as manager:
         q = manager.Queue()
         value = Value('i', 0)
@@ -59,6 +63,9 @@ def analyze_all_posts(posts: list[dict]) -> None:
         
         print(f'Обработано постов: {value.value}')
 
-    return result
+    for item in result:
+        queue_to_save.put(item)
+
+    return queue_to_save
 
 

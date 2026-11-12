@@ -1,15 +1,17 @@
 import time
+from collections.abc import Generator
 from concurrent.futures import ThreadPoolExecutor
-from threading import Lock, Event, Thread
 from functools import partial
 from queue import Queue
-from typing import Generator
+from threading import Event, Lock, Thread
 
 suc_saved = 0
-all = 0
 
-def save_post(post_data: dict, lock: Lock) -> None:
+def save_post(post_data: dict | None, lock: Lock) -> None:
     global suc_saved
+
+    if post_data is None:
+        return
 
     with lock:
 
@@ -31,10 +33,8 @@ def get_item_from_queue(q: Queue) -> Generator[dict, None, None]:
     yield q.get()
 
 
-def save_all_posts(q, event: Event, all_posts: int) -> None:
+def save_all_posts(q, event: Event) -> None:
 
-    global all
-    all = all_posts
     lock = Lock()
 
     progress = Thread(target=print_progress, args=(event, ))
